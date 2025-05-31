@@ -1,58 +1,25 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ravi's Sparkling Page</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background: linear-gradient(180deg, #0a0a1a, #0f1326);
+            background: #0a0a1a; /* Céu escuro estático */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: Arial, sans-serif;
+            font-family: 'Dancing Script', cursive;
+            transition: background 1s;
+        }
+
+        body.light {
+            background: linear-gradient(180deg, #e6e6ff, #b3c6ff);
         }
 
         canvas {
@@ -64,45 +31,136 @@
 
         .name {
             z-index: 2;
-            font-size: clamp(50px, 10vw, 100px);
+            font-size: clamp(60px, 12vw, 120px);
             color: #ffffff;
-            text-shadow: 0 0 20px #ffcc00, 0 0 30px #ff9900, 0 0 40px #ff6600;
+            text-shadow: 0 0 20px #ffcc00, 0 0 30px #ff9900, 0 0 50px #ff6600;
             animation: glow 2s ease-in-out infinite alternate, pulse 3s ease-in-out infinite, colorChange 5s infinite, entrance 2s ease-out forwards;
             transform-origin: center;
             cursor: pointer;
+            position: relative;
         }
 
         .name:hover {
-            text-shadow: 0 0 30px #ffcc00, 0 0 40px #ff9900, 0 0 50px #ff6600;
+            text-shadow: 0 0 30px #ffcc00, 0 0 50px #ff9900, 0 0 70px #ff6600;
             animation-duration: 1s, 1.5s, 5s, 2s;
         }
 
-        .fullscreen-btn {
+        .name::before {
+            content: '';
             position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 3;
-            padding: 10px 20px;
-            background: #ffffff33;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
+            top: -20px;
+            left: -20px;
+            right: -20px;
+            bottom: -20px;
+            background: radial-gradient(circle, rgba(255, 204, 0, 0.2) 0%, rgba(255, 204, 0, 0) 70%);
+            animation: sparkle 3s infinite;
+            z-index: -1;
         }
 
-        .fullscreen-btn:hover {
-            background: #ffffff66;
+        .fullscreen-btn, .theme-btn {
+            position: absolute;
+            z-index: 2;
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #ffcc00, #ff66cc);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .fullscreen-btn:hover, .theme-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px #ffcc00;
+        }
+
+        .fullscreen-btn {
+            top: 10px;
+            right: 10px;
+        }
+
+        .theme-btn {
+            top: 60px;
+            right: 10px;
+        }
+
+        .welcome {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 2;
+            color: #ffffff;
+            font-size: 20px;
+            text-align: left;
+            max-width: 300px;
+            animation: fadeIn 3s ease-out forwards;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Dancing Script', cursive;
+        }
+
+        .avatar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 2;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ffcc00 20%, transparent 70%);
+            border: 2px solid #ffcc00;
+            border-radius: 50%;
+            animation: float 4s ease-in-out infinite;
+            box-shadow: 0 0 10px #ffcc00;
+        }
+
+        .gallery {
+            position: absolute;
+            bottom: 70px;
+            z-index: 2;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .gallery img {
+            width: clamp(100px, 15vw, 140px);
+            height: clamp(100px, 15vw, 140px);
+            object-fit: cover;
+            border-radius: 12px;
+            border: 3px solid #ffcc00;
+            background: #fff;
+            padding: 5px;
+            transform: rotate(-2deg);
+            animation: photoEntrance 2.5s ease-out forwards;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .gallery img:nth-child(2) {
+            transform: rotate(2deg);
+        }
+
+        .gallery img:nth-child(3) {
+            transform: rotate(0deg);
+        }
+
+        .gallery img:hover {
+            transform: scale(1.15) rotate(0deg);
+            box-shadow: 0 0 20px #ffcc00;
         }
 
         @keyframes glow {
             from { text-shadow: 0 0 10px #ffcc00, 0 0 20px #ff9900, 0 0 30px #ff6600; }
-            to { text-shadow: 0 0 20px #ffcc00, 0 0 30px #ff9900, 0 0 40px #ff6600; }
+            to { text-shadow: 0 0 25px #ffcc00, 0 0 40px #ff9900, 0 0 60px #ff6600; }
         }
 
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            50% { transform: scale(1.15); }
             100% { transform: scale(1); }
         }
 
@@ -117,12 +175,45 @@
             from { transform: scale(0); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes photoEntrance {
+            from { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+            to { transform: scale(1) rotate(-2deg); opacity: 1; }
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+            100% { opacity: 0.3; }
+        }
     </style>
 </head>
 <body>
     <canvas id="stars"></canvas>
     <div class="name">Ravi</div>
     <button class="fullscreen-btn" onclick="toggleFullscreen()">Tela Cheia</button>
+    <button class="theme-btn" onclick="toggleTheme()">Modo Claro</button>
+    <div class="welcome">
+        Bem-vindo ao mundo do Ravi!<br>
+        Se encontrar esta mochila, contate: (41) 99828-4262
+    </div>
+    <div class="avatar"></div>
+    <div class="gallery">
+        <img src="foto1.jpg" alt="Foto do Ravi 1">
+        <img src="foto2.jpg" alt="Foto do Ravi 2">
+        <img src="foto3.jpg" alt="Foto do Ravi 3">
+    </div>
     <script>
         const canvas = document.getElementById('stars');
         const ctx = canvas.getContext('2d');
@@ -133,8 +224,10 @@
         const stars = [];
         const backgroundStars = [];
         const explosionStars = [];
+        const shootingStars = [];
         const numStars = 150;
         const numBackgroundStars = 100;
+
         let mouseX = 0;
         let mouseY = 0;
 
@@ -190,6 +283,33 @@
             });
         }
 
+        // Estrelas cadentes
+        function createShootingStar() {
+            shootingStars.push({
+                x: Math.random() * canvas.width,
+                y: 0,
+                radius: Math.random() * 2 + 1,
+                alpha: 1,
+                vx: (Math.random() - 0.5) * 5,
+                vy: Math.random() * 5 + 2,
+                life: 100
+            });
+        }
+
+        setInterval(createShootingStar, 2000);
+
+        // Partículas de brilho no fundo
+        const sparkles = [];
+        for (let i = 0; i < 50; i++) {
+            sparkles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 0.5 + 0.2,
+                alpha: Math.random() * 0.5 + 0.2,
+                speed: Math.random() * 0.02 + 0.01
+            });
+        }
+
         // Eventos do mouse
         canvas.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
@@ -240,8 +360,24 @@
             }
         }
 
+        // Função para alternar tema
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            document.querySelector('.theme-btn').textContent = document.body.classList.contains('light') ? 'Modo Escuro' : 'Modo Claro';
+        }
+
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar partículas de brilho no fundo
+            sparkles.forEach(sparkle => {
+                ctx.beginPath();
+                ctx.arc(sparkle.x, sparkle.y, sparkle.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${sparkle.alpha})`;
+                ctx.fill();
+                sparkle.alpha += sparkle.speed * (Math.random() > 0.5 ? 1 : -1);
+                sparkle.alpha = Math.max(0.2, Math.min(0.8, sparkle.alpha));
+            });
 
             // Desenhar névoa cósmica e estrelas de fundo
             backgroundStars.forEach(star => {
@@ -302,7 +438,6 @@
                 if (star.y < 0) star.y += canvas.height;
                 if (star.y > canvas.height) star.y -= canvas.height;
 
-                // Linhas de conexão
                 if (distance < 100) {
                     ctx.beginPath();
                     ctx.moveTo(star.x, star.y);
@@ -326,6 +461,23 @@
 
                 if (star.life <= 0) {
                     explosionStars.splice(index, 1);
+                }
+            });
+
+            // Desenhar estrelas cadentes
+            shootingStars.forEach((star, index) => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+
+                star.x += star.vx;
+                star.y += star.vy;
+                star.alpha -= 0.01;
+                star.life--;
+
+                if (star.life <= 0) {
+                    shootingStars.splice(index, 1);
                 }
             });
 
